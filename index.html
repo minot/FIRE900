@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>900 Weeks Life Calendar</title>
+  <style>
+    :root {
+      --cell-size: 20px;
+      --gap: 2px;
+      --accent-color: #4a90e2;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #f5f5f5;
+      font-family: system-ui;
+      padding: 2rem;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 600px;
+      max-width: 90%;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.8em;
+      color: var(--accent-color);
+      font-weight: 600;
+    }
+
+    .stat-label {
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 0.5em;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(30, var(--cell-size));
+      gap: var(--gap);
+      padding: 1rem;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .cell {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      text-align: center;
+      line-height: var(--cell-size);
+      font-size: calc(var(--cell-size) * 0.8);
+      transition: transform 0.2s;
+      cursor: help;
+    }
+  </style>
+</head>
+<body>
+<div class="stats">
+  <div class="stat-item">
+    <div class="stat-value" id="progress">0%</div>
+    <div class="stat-label">Progress</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value" id="weeks-left">0</div>
+    <div class="stat-label">Weeks Left</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value" id="end-date">-</div>
+    <div class="stat-label">FIRE</div>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+  const CONFIG = {
+    startDate: new Date(2012, 0, 2),
+    totalWeeks: 900,
+    moonPhases: ['🌑', '🌘', '🌘', '🌗', '🌖', '🌖', '🌕']
+  };
+
+  // 日期格式化工具
+  // const formatDate = (date) => date.toISOString().split('T')[0];
+  const formatDate = (date) => date.toLocaleDateString();
+
+  // 计算结束日期
+  const getEndDate = () => {
+    const end = new Date(CONFIG.startDate);
+    end.setDate(end.getDate() + CONFIG.totalWeeks * 7);
+    return end;
+  };
+
+  const updateStats = (elapsedWeeks) => {
+    // 进度计算
+    const progress = (elapsedWeeks / CONFIG.totalWeeks * 100).toFixed(1);
+    document.getElementById('progress').textContent = `${progress}%`;
+
+    // 剩余周数
+    const weeksLeft = CONFIG.totalWeeks - elapsedWeeks;
+    document.getElementById('weeks-left').textContent =
+            `${weeksLeft} (${(weeksLeft/52).toFixed(1)} yrs)`;
+
+    // 结束日期
+    document.getElementById('end-date').textContent =
+            formatDate(getEndDate());
+  };
+
+  const generateCalendar = () => {
+    const today = new Date();
+    const elapsedDays = Math.floor((today - CONFIG.startDate) / 86400000);
+    const elapsedWeeks = Math.floor(elapsedDays / 7);
+    const currentWeekDay = elapsedDays % 7;
+
+    // 更新统计信息
+    updateStats(elapsedWeeks);
+
+    // 生成网格
+    let html = '';
+    for(let week = 1; week <= CONFIG.totalWeeks; week++) {
+      const isCurrent = week === elapsedWeeks + 1;
+      const phaseIndex = isCurrent ?
+              Math.min(currentWeekDay, CONFIG.moonPhases.length - 1) :
+              week <= elapsedWeeks ? CONFIG.moonPhases.length - 1 : 0;
+
+      html += `<div class="cell"
+                          data-week="${week}"
+                          data-date="${formatDate(new Date(
+              CONFIG.startDate.getTime() + (week-1)*7*86400000
+      ))}"
+                          title="Week ${week} (${CONFIG.moonPhases[phaseIndex]})\n
+                          Date: ${formatDate(new Date(
+              CONFIG.startDate.getTime() + (week-1)*7*86400000
+      ))}">
+                      ${CONFIG.moonPhases[phaseIndex]}
+                  </div>`;
+    }
+
+    document.getElementById('grid').innerHTML = html;
+  };
+
+  // 初始化
+  generateCalendar();
+
+  // 动态更新（每小时更新一次）
+  setInterval(() => {
+    const today = new Date();
+    if(today.getMinutes() === 0) generateCalendar();
+  }, 3600000);
+</script>
+</body>
+</html>
